@@ -120,8 +120,6 @@ class TrackingFrame(Frame):
         self.track_button=Button(self,text='Track!',command=self.track)
         self.track_button.grid(row=12,column=4,columnspan=1)
         
-        self.check_res_button=Button(self,text='Check Results',state=DISABLED)
-        self.check_res_button.grid(row=12,column=5,columnspan=1)
         
         #Boutons pour charger/sauver les .csv
         
@@ -186,8 +184,8 @@ class TrackingFrame(Frame):
         import csv
         import numpy as np
 
-        if self.hdf5_filename.get() == "":
-            tkMessageBox.showerror("No filename chosen","Please define a filename.")
+        if self.hdf5_filename.get() == "" or self.marks==[]:
+            tkMessageBox.showerror("Track settings incomplete","Either a filename has not been defined or no cells have been selected. Please verify your settings.")
             self.saveas_entry.set
         else:
         
@@ -202,7 +200,6 @@ class TrackingFrame(Frame):
             marksfile.close()
 
             test_experiment(datazip_filename=self.datazip_filename,marks_filename=self.marks_filename,hdf5_filename=self.hdf5_filename.get(),dir=self.radValue.get(),params=self.params)
-            self.check_res_button['state']='active'
 
     def change_bg(self,*args):
         if self.radValue.get()=='fwd':
