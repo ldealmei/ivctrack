@@ -6,10 +6,7 @@
 from Tkinter import *
 from TrackingFrame import TrackingFrame
 from PlotFrame import PlotFrame
-from MeasFrame import MeasFrame
 from AniFrame import AniFrame
-
-from MeasFrameV2 import MeasFrameV2
 from MeasFrameV3 import MeasFrameV3
 
 import tkFileDialog
