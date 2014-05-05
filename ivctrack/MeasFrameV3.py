@@ -18,7 +18,6 @@ from measurement import relative_direction_distribution
 from reader import ZipSource,Reader
 import matplotlib.cm as cm
 
-import os
 
 class MeasFrameV3(Frame):
     """Frame allowing a deeper trajectory analysis, based on the measurement module """
@@ -113,7 +112,7 @@ class MeasFrameV3(Frame):
             self.features_list.append(Label(self,text=feat))
             self.values_list.append(Label(self))
 
-        units=['px','px/frame','px/frame','px^2','px','/','/']# A vérifier
+        units=['px','px/frame','px/frame','px^2','px','/','/']
 
         for unit in units:
             self.units_list.append(Label(self,text=unit))

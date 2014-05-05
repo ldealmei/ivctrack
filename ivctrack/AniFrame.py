@@ -19,7 +19,6 @@ import tkFileDialog
 from hdf5_read import get_hdf5_data
 import matplotlib.animation as anim
 
-import os
 
 class AniFrame(Frame):
     """Frame displaying the results of the tracking as a video, and allowing to save it. Will NOT work if FFmpeg is not installed."""

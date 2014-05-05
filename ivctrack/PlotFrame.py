@@ -14,7 +14,6 @@ import matplotlib.cm as cm
 
 import tkFileDialog
 
-import os
 
 class PlotFrame(Frame):
     """Frame that allows the user to view the results of the tracking trough diferent kinds of graphic representations """
