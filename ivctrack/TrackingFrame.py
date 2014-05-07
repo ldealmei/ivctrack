@@ -252,29 +252,28 @@ class TrackingFrame(Frame):
             test_experiment(datazip_filename=self.datazip_filename,marks_filename=self.marks_filename,hdf5_filename=filename,dir=self.radValue.get(),params=self.params)
             
             if (self.create_folder.get()):
+                self.feat,self.data=get_hdf5_data(foldername + '/tracks.hdf5',fields=['center','halo','soma'])
                 self.save_param(param_filename)
                 self.save_mp4(self.hdf5_filename.get())
-            
-            
-            self.feat,self.data=get_hdf5_data(foldername + '/tracks.hdf5',fields=['center','halo','soma'])
-            feat_name, measures=speed_feature_extraction(self.data)
+                
+                feat_name, measures=speed_feature_extraction(self.data)
+                
+                feat_file = open(foldername + '/features.csv', 'wb')
+                csvwriter = csv.writer(feat_file, delimiter=',')
+                
+                csvwriter.writerow(['x'] + ['y'] + [feat_name[0]] + [feat_name[1]] + [feat_name[2]] + [feat_name[3]] + [feat_name[4]] + [feat_name[5]] + [feat_name[6]])
+                measures = np.asarray(measures)
+                i = 0
+                for c in csvmarks:
+                    csvwriter.writerow([c[0]] + [c[1]] + [measures[i][0]] + [measures[i][1]] + [measures[i][2]] + [measures[i][3]] + [measures[i][4]] + [measures[i][5]] + [measures[i][6]])
+                    i+=1
+                feat_file.close()
+        
 
-            feat_file = open(foldername + '/features.csv', 'wb')
-            csvwriter = csv.writer(feat_file, delimiter=',')
-            
-            csvwriter.writerow(['x'] + ['y'] + [feat_name[0]] + [feat_name[1]] + [feat_name[2]] + [feat_name[3]] + [feat_name[4]] + [feat_name[5]] + [feat_name[6]])
-            measures = np.asarray(measures)
-            i = 0
-            for c in csvmarks:
-                csvwriter.writerow([c[0]] + [c[1]] + [measures[i][0]] + [measures[i][1]] + [measures[i][2]] + [measures[i][3]] + [measures[i][4]] + [measures[i][5]] + [measures[i][6]])
-                i+=1
-            feat_file.close()
-
-
+    
     def save_mp4(self,foldername):
         
-        self.feat,self.data=get_hdf5_data(foldername + '/tracks.hdf5',fields=['center','halo','soma'])
-                
+        
         for k in range(len(self.static_halo)):
             self.static_halo[k][0].set_data([],[])
             self.static_soma[k][0].set_data([],[])
