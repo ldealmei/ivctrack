@@ -180,7 +180,7 @@ class MeasFrameV3(Frame):
         R,V,Theta,Rtot,clip_dtheta,rho = relative_direction_distribution(fxy,verbose=True)#2nd figure (polar)
 
     def plotLinFit(self):
-        """Executes the 'scaling_exponent' function of the measurement module frm the ivctrack toolbox.
+        """Executes the 'scaling_exponent' function of the measurement module from the ivctrack toolbox.
         """
         cell = int(self.cell_list.get('active').rsplit(' ')[-1])-1
 
@@ -201,10 +201,10 @@ class MeasFrameV3(Frame):
         
         a_scat.scatter(self.measures[:,1],self.measures[:,3])
         a_scat.set_xlabel('avg speed')
-        a_scat.set_ylabel('hull speed')
+        a_scat.set_ylabel('hull surface')
         
         a_hist.hist(self.measures[:,1:4])
-        a_hist.legend(['avg','mrdo','hull speed'])
+        a_hist.legend(['avg','mrdo','hull surface'])
         
         fig.show()
     

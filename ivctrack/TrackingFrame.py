@@ -205,6 +205,8 @@ class TrackingFrame(Frame):
         self.var_somexp.set(2)
         self.var_hexp.set(15)
         self.hdf5_filename.set('')
+        self.radValue.set('fwd')
+
 
         #------refresh the displayed frame------
         self.marks=[]
@@ -295,7 +297,6 @@ class TrackingFrame(Frame):
             self.reader.rewind()
             print "Saving video..."
             for i in range(self.reader.N()):
-                
                 self.bg=self.reader.getframe()
                 self.im.set_data(self.bg)
                 try:
@@ -309,7 +310,7 @@ class TrackingFrame(Frame):
                 self.frame_text.set_text(i)
                 
                 writer.grab_frame()
-            print "Video correctly saved at "#, foldername +'/vid.mp4'
+            print "Video correctly saved at " + foldername +'/vid.mp4'
 
         self.reset()
 
@@ -321,7 +322,7 @@ class TrackingFrame(Frame):
         elif self.radValue.get()=='rev':
             self.bg=self.reader.ff()
         
-        self.a.imshow(self.bg,cmap=cm.gray)
+        self.im=self.a.imshow(self.bg,cmap=cm.gray)
         self.canvas.show()
 
     def load_csv(self):
