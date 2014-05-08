@@ -1,20 +1,24 @@
 # -*- coding: utf-8 -*-
+'''This file implements the menu frame of the GUI for the ivctrack module
+'''
+__author__ = ' De Almeida Luis <ldealmei@ulb.ac.be>'
 
-#A faire:
-#1.Problème récursif de fichier inaccessible (seulement ceux que je crée via l'interface). Peut etre faut il les refermer apres les avoir ouvert avec askopenfile? Mais du coup pq ça ne le fait pas avec les fichiers créés via l'invite de commandes? /!\
-#3. Dégager la toolbar et la faire apparaitre au bon endroit
+#------generic imports------
 from Tkinter import *
+import tkFileDialog
+
+#-------local imports------
 from TrackingFrame import TrackingFrame
 from PlotFrame import PlotFrame
 from AniFrame import AniFrame
 from MeasFrameV3 import MeasFrameV3
 
-import tkFileDialog
+
 
 class MainFrame(Frame):
     
     """Main menu frame : The user can either start a new tracking or view results from previous trackings
-        The .zip file whch contains the image sequences is linked to the menu window and can only be modified from there"""
+        The .zip file which contains the image sequences is linked to the menu window and can only be modified from there"""
     def __init__(self,win):
         Frame.__init__(self,win,width=700,height=700)
         self.pack()
@@ -32,6 +36,9 @@ class MainFrame(Frame):
         self.file_opt['filetypes'] =  [('ZIP file','.zip')]
         self.file_opt['defaultextension'] ='.zip'
         self.file_opt['title'] = 'Select a zipped sequence file'
+        
+        
+        #----------------------------------------------------GUI IMPLEMENTATION-----------------------------------------
 
         self.track_button=Button(self,text='Start Tracking',command=lambda : self.track())
         self.track_button.pack(fill='both')
@@ -59,7 +66,8 @@ class MainFrame(Frame):
     
         self.back_button=Button(self,text='Back',command = lambda : self.back())
 
-    
+        #------------------------------------------------------END-------------------------------------------------------------
+
     
     def back(self):
         """Return to the menu window.  """
@@ -120,8 +128,6 @@ class MainFrame(Frame):
     def measurements(self):
         """Method that transits from the menu to the frame that displays multiple measures"""
 
-#self.meas_frame=MeasFrame(win)
-
         if self.datazip_filename=="":
             self.change_zip()
         self.meas_frame=MeasFrameV3(win,self.datazip_filename)
@@ -148,10 +154,12 @@ class MainFrame(Frame):
         self.back_button.pack(side='bottom')
 
     def change_zip(self):
-        """Method that allows the user to change the current .zip file """
+        """Method that allows the user to change the current sequence ZIP file """
         self.datazip_filename=tkFileDialog.askopenfilename(**self.file_opt)
-        self.zip_var.set("Change Zip File ({})".format(self.datazip_filename.rsplit('/')[-1]))
-
+        try:
+            self.zip_var.set("Change Zip File ({})".format(self.datazip_filename.rsplit('/')[-1]))
+        except AttributeError:
+            pass
 
 
 if __name__== '__main__':

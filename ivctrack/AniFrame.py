@@ -1,34 +1,34 @@
 # -*- coding: utf-8 -*-
-#A faire :
+'''This file implements a frame allowing to verify the tracking through an animation (which can be saved).
+'''
+__author__ = ' De Almeida Luis <ldealmei@ulb.ac.be>'
 
-import matplotlib
-matplotlib.use('Tkagg')
-
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
-
-from matplotlib.figure import Figure
-
+#------generic imports------
 from Tkinter import *
-
-import matplotlib.pyplot as plt
-
-from reader import ZipSource,Reader
-import matplotlib.cm as cm
 import tkFileDialog
 
-from hdf5_read import get_hdf5_data
+#------specific imports------
+import matplotlib
+matplotlib.use('Tkagg')
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 import matplotlib.animation as anim
 
+#------ivctrack toolbox imports------
+from reader import ZipSource,Reader
+from hdf5_read import get_hdf5_data
 
 class AniFrame(Frame):
     """Frame displaying the results of the tracking as a video, and allowing to save it. Will NOT work if FFmpeg is not installed."""
 
     def __init__(self,win,zip_filename):
         Frame.__init__(self,win)
-        #self.pack(fill='both')
         
         self.feat=[]
         self.data = []
+
+        #----------------------------------------------------GUI IMPLEMENTATION-----------------------------------------
 
         self.file_var=StringVar()
         self.file_var.set('HDF5 File: ')
@@ -37,18 +37,6 @@ class AniFrame(Frame):
         
         self.file_browse_button=Button(self,text='Browse',command=self.ask_open_and_load_file)
         self.file_browse_button.grid(row=0,column=4)
-
-        self.f=plt.figure()
-        self.a=self.f.add_subplot(111)
-
-        h=[]
-        s=[]
-
-        self.frame_text=self.a.text(10,20,'')
-
-        self.canvas = FigureCanvasTkAgg(self.f, master=self)
-        self.canvas.show()
-        self.canvas.get_tk_widget().grid(row=1,column=2,rowspan=3,columnspan=3)
         
         self.soma_var=BooleanVar()
         self.soma_check=Checkbutton(self,text='Soma',variable=self.soma_var)
@@ -70,10 +58,21 @@ class AniFrame(Frame):
         self.var_dpi=IntVar()
         self.var_dpi.set(200)
         self.dpi_entry=Entry(self,textvariable=self.var_dpi)
+        
+        #-----Configuration of the tracking canvas------        
+        self.f=plt.figure()
+        self.a=self.f.add_subplot(111)
 
-        self.writer=anim.writers['ffmpeg']
-        self.writer=self.writer(fps=5)
+        self.frame_text=self.a.text(10,20,'')
+
+        self.canvas = FigureCanvasTkAgg(self.f, master=self)
+        self.canvas.show()
+        self.canvas.get_tk_widget().grid(row=1,column=2,rowspan=3,columnspan=3)
+        
+        #------------------------------------------------------END-------------------------------------------------------------
+
     
+        #------import of the zip file & update of the canvas------
         self.datazip_filename = zip_filename
         
         self.reader = Reader(ZipSource(self.datazip_filename))
@@ -83,6 +82,10 @@ class AniFrame(Frame):
         
         self.a.set_xlim(0,len(self.bg[0,:]))
         self.a.set_ylim(len(self.bg[:,0]),0)
+        
+        #------MP4 writer------
+        self.writer=anim.writers['ffmpeg']
+        self.writer=self.writer(fps=5)
 
 
     def ask_open_and_load_file(self):
@@ -111,12 +114,14 @@ class AniFrame(Frame):
 
     
     def play(self):
+        
         self.cell_ani = anim.FuncAnimation(fig=self.f, func=self.update_img,init_func=self.init_im,frames=self.reader.N(),blit=False)
         self.canvas.show()
         self.play_button.grid_forget()
 
     def save(self):
-
+        """Exports the animation to a MP4 file.
+        """
         self.file_opt={}
         self.file_opt['filetypes'] =  [('MP4 files','.mp4')]
         self.file_opt['defaultextension'] ='.mp4'
@@ -208,10 +213,3 @@ class AniFrame(Frame):
             y=t[0:i,1]
             self.trajectory[k][0].set_data(x,y)
             k+=1
-
-
-if __name__=='__main__':
-    root =Tk()
-    root.wm_title("Simple tracking results plot")
-    c=AniFrame(root)
-    c.mainloop()

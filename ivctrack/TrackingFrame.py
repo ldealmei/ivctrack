@@ -1,37 +1,45 @@
 # -*- coding: utf-8 -*-
+'''This file implements the frame allowing to select the cells to analyse and to start the tracking
+'''
+__author__ = ' De Almeida Luis <ldealmei@ulb.ac.be>'
 
-#A faire:
-
-
+#------generic imports------
 from Tkinter import *
+import tkFileDialog
+import tkMessageBox
+import os
+import csv
+import numpy as np
+
+#------specific imports------ 
 import matplotlib
 matplotlib.use('Tkagg')
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
-from reader import ZipSource,Reader
 import matplotlib.cm as cm
-import tkFileDialog
-import tkMessageBox
-import os
 import matplotlib.animation as anim
+import json
 
+#------ivctrack toolbox imports------
 from hdf5_read import get_hdf5_data
 from cellmodel import Cell,test_experiment,import_marks
 from measurement import speed_feature_extraction
+from reader import ZipSource,Reader
 
 
 class TrackingFrame(Frame):
 
-    """Tracking frame :Allows to :_manually select the cells to track OR/AND import a .csv file containing the coordinates of previous marks. The marks used for the tracking are automatically saved under "selected_marks.csv"
+    """Tracking frame :Allows to :_manually select the cells to track OR/AND import a .csv file containing the coordinates of previous marks.
                                   _set the parameters of the tracking and save them or load previously saved parameters
                                   _set the direction of the tracking"""
 
     def __init__(self,win,zip_filename):
         Frame.__init__(self,win,width=700,height=700)
-        #self.pack(fill='both')#A DEGAGER
         
-        #Parametres(N,radius,.. et direction du tracking)
-        self.params_lbl=Label(self,text='Parametres:')
+        #----------------------------------------------------GUI IMPLEMENTATION-----------------------------------------
+        
+        #------Parameters(N,radius,.. & tracking direction)------
+        self.params_lbl=Label(self,text='Parameters:')
         self.params_lbl.grid(row=1,column=0,sticky='W')
 
         self.p1_lbl=Label(self,text='N')
@@ -41,60 +49,54 @@ class TrackingFrame(Frame):
         self.p1_entry=Entry(self,textvariable=self.var_N)
         self.p1_entry.grid(column=2,row=1)
         
-        self.p2_lbl=Label(self,text='halo radius')
+        self.p2_lbl=Label(self,text='Halo Radius')
         self.p2_lbl.grid(column=1,row=2, sticky='W')
         self.var_hrad=IntVar()
         self.var_hrad.set(20)
         self.p1_entry=Entry(self,textvariable=self.var_hrad)
         self.p1_entry.grid(column=2,row=2)
         
-        self.p3_lbl=Label(self,text='soma radius')
+        self.p3_lbl=Label(self,text='Soma Radius')
         self.p3_lbl.grid(column=1,row=3, sticky='W')
         self.var_somrad=IntVar()
         self.var_somrad.set(15)
         self.p1_entry=Entry(self,textvariable=self.var_somrad)
         self.p1_entry.grid(column=2,row=3)
         
-        self.p4_lbl=Label(self,text='exp halo')
+        self.p4_lbl=Label(self,text='Exp Halo')
         self.p4_lbl.grid(column=1,row=4, sticky='W')
         self.var_hexp=IntVar()
         self.var_hexp.set(15)
         self.p1_entry=Entry(self,textvariable=self.var_hexp)
         self.p1_entry.grid(column=2,row=4)
         
-        self.p5_lbl=Label(self,text='exp soma')
+        self.p5_lbl=Label(self,text='Exp Soma')
         self.p5_lbl.grid(column=1,row=5, sticky='W')
         self.var_somexp=IntVar()
         self.var_somexp.set(2)
         self.p1_entry=Entry(self,textvariable=self.var_somexp)
         self.p1_entry.grid(column=2,row=5)
         
-        self.p6_lbl=Label(self,text='niter')
+        self.p6_lbl=Label(self,text='N_iter')
         self.p6_lbl.grid(column=1,row=6, sticky='W')
         self.var_niter=IntVar()
         self.var_niter.set(5)
         self.p1_entry=Entry(self,textvariable=self.var_niter)
         self.p1_entry.grid(column=2,row=6)
         
-        self.p7_lbl=Label(self,text='alpha')
+        self.p7_lbl=Label(self,text='Alpha')
         self.p7_lbl.grid(column=1,row=7, sticky='W')
         self.var_alpha=DoubleVar()
         self.var_alpha.set(.75)
         self.p1_entry=Entry(self,textvariable=self.var_alpha)
         self.p1_entry.grid(column=2,row=7)
         
-        self.load_param_button=Button(self,text='Load params',command=self.load_param)
+        self.load_param_button=Button(self,text='Load parameters',command=self.load_param)
         self.load_param_button.grid(row=8,column=1)
 
         self.dir_lbl=Label(self,text='Direction:')
         self.dir_lbl.grid(row=9,sticky='W')
         
-        self.f=plt.figure()
-        self.a=self.f.add_subplot(111)
-        
-        self.canvas = FigureCanvasTkAgg(self.f, master=self)
-        self.canvas.get_tk_widget().grid(column=3,row=1,rowspan=11,columnspan=3)
-
         self.radValue=StringVar()
         self.radValue.set('fwd')
         self.radValue.trace('w',self.change_bg)
@@ -102,8 +104,19 @@ class TrackingFrame(Frame):
         self.fwd_radbut.grid(column=1,row=9,sticky='W')
         self.rev_radbut=Radiobutton(self,text='Reverse',variable=self.radValue,value='rev')
         self.rev_radbut.grid(column=1,row=10,sticky='W')
+        
+        #-----Configuration of the tracking canvas------        
+        self.f=plt.figure()
+        self.a=self.f.add_subplot(111)
+        
+        self.canvas = FigureCanvasTkAgg(self.f, master=self)
+        self.canvas.get_tk_widget().grid(column=3,row=1,rowspan=11,columnspan=3)
+        
+        cid=self.f.canvas.mpl_connect('button_release_event', self.onclick)
+        self.marks=[]
 
-        self.saveas_lbl=Label(self,text='Save as ')
+        #------Saving parameters------
+        self.saveas_lbl=Label(self,text='File (folder) name ')
         self.saveas_lbl.grid(column=0,row=11,sticky='W')
         
         self.hdf5_filename=StringVar()
@@ -119,24 +132,19 @@ class TrackingFrame(Frame):
         self.create_folder_checkbutton.grid(row=12, column=1)
         
 
-        #Boutons pour quitter ou lancer le tracking
-
+        #------tracking related widgets------
         self.reset_button=Button(self,text='Reset',command=self.reset)
         self.reset_button.grid(row=12,column=2)
 
         self.track_button=Button(self,text='Track!',command=self.track)
         self.track_button.grid(row=12,column=4,columnspan=1)
         
-        
-        #Boutons pour charger/sauver les .csv
-        
         self.import_csv_button=Button(self,text='Import marks (.csv)',command=self.load_csv)
         self.import_csv_button.grid(row=12,column=3)
         
-        cid=self.f.canvas.mpl_connect('button_release_event', self.onclick)
-        self.marks=[]
-    
-        #Import of the zip file
+        #------------------------------------------------------END-------------------------------------------------------------
+
+        #------import of the zip file & update of the canvas------
         
         self.datazip_filename=zip_filename
         self.reader = Reader(ZipSource(self.datazip_filename))
@@ -151,22 +159,23 @@ class TrackingFrame(Frame):
         
         self.canvas.show()
     
+        #------parameters related to the saving to a MP4 file------
         self.static_halo=[]
         self.static_soma=[]
     
+        #------list of plots of tracked cells------
         self.halo=[]
         self.soma=[]
-        self.trajectory=[]
-        
         self.halo.append(self.a.plot([],[],'o'))
         self.soma.append(self.a.plot([],[]))
-        self.trajectory.append(self.a.plot([],[]))
-
+    
     def onclick(self,event):
+        """tracks the cell positioned at the pointer position.
+        """
         
         self.params = {'N':self.var_N.get(),'radius_halo':self.var_hrad.get(),'radius_soma':self.var_somrad.get(),'exp_halo':self.var_hexp.get(),'exp_soma':self.var_somexp.get(),'niter':self.var_niter.get(),'alpha':self.var_alpha.get()}
     
-        #Tracking sur la frame affichee
+        #------direct tracking on the displayed frame------
         c=Cell(event.xdata,event.ydata,**self.params)
         c.update(self.bg)
         
@@ -183,10 +192,11 @@ class TrackingFrame(Frame):
 
         self.halo.append(self.a.plot([],[],'o'))
         self.soma.append(self.a.plot([],[]))
-        self.trajectory.append(self.a.plot([],[]))
 
     def reset(self):
-        #Parametres par defaut
+        """Resets parameters to default values and clears the marks.
+        """
+        #------default parameters------
         self.var_N.set(12)
         self.var_alpha.set(.75)
         self.var_niter.set(5)
@@ -196,7 +206,7 @@ class TrackingFrame(Frame):
         self.var_hexp.set(15)
         self.hdf5_filename.set('')
 
-        #Enlever les marques deja faites
+        #------refresh the displayed frame------
         self.marks=[]
         self.a.cla()
         self.a.set_xlim(0,len(self.bg[0,:]))
@@ -205,29 +215,28 @@ class TrackingFrame(Frame):
         self.bg=self.reader.getframe()
         self.im = self.a.imshow(self.bg,cmap=cm.gray)
         self.canvas.show()
-    
+        
+        
         self.static_halo=[]
         self.static_soma=[]
         
         self.halo=[]
-        self.soma=[]
-        self.trajectory=[]
-        
+        self.soma=[]   
         self.halo.append(self.a.plot([],[],'o'))
         self.soma.append(self.a.plot([],[]))
-        self.trajectory.append(self.a.plot([],[]))
     
 
     def track(self):
-        import csv
-        import numpy as np
-
+        """Executes the tracking and saves files into a folder (if desired). The files are : the marks (CSV), the parameters(JSON), the results(hdf5), a video(MP4) 
+        and speed features(CSV).
+        """
+        
         if self.hdf5_filename.get() == "" or self.marks==[]:
             tkMessageBox.showerror("Track settings incomplete","Either a filename has not been defined or no cells have been selected. Please verify your settings.")
             self.saveas_entry.set
         else:
             
-            #If the user wants a folder reuniting all files related to a single tracking or not
+            #------if the user wants a folder reuniting all files related to a single tracking or not------
             if (self.create_folder.get()):
                 foldername = self.hdf5_filename.get()
                 filename = foldername +'/tracks.hdf5'
@@ -239,16 +248,15 @@ class TrackingFrame(Frame):
                 filename = self.hdf5_filename.get() + '.hdf5'
                 self.marks_filename = 'selected_marks.csv'
 
+            #------saving of the marks to a CSV file------
             csvmarks=np.asarray(self.marks)
-
             marksfile=open(self.marks_filename, 'wb')
             csvwriter=csv.writer(marksfile, delimiter=',')
-            
-            #enregistrement des marques effectuees manuellement
             for c in csvmarks:
                 csvwriter.writerow([c[0]] + [c[1]] + [int(c[2])])
             marksfile.close()
             
+            #------tracking------
             test_experiment(datazip_filename=self.datazip_filename,marks_filename=self.marks_filename,hdf5_filename=filename,dir=self.radValue.get(),params=self.params)
             
             if (self.create_folder.get()):
@@ -258,9 +266,9 @@ class TrackingFrame(Frame):
                 
                 feat_name, measures=speed_feature_extraction(self.data)
                 
+                #------saving of the speed features to a CSV file------
                 feat_file = open(foldername + '/features.csv', 'wb')
                 csvwriter = csv.writer(feat_file, delimiter=',')
-                
                 csvwriter.writerow(['x'] + ['y'] + [feat_name[0]] + [feat_name[1]] + [feat_name[2]] + [feat_name[3]] + [feat_name[4]] + [feat_name[5]] + [feat_name[6]])
                 measures = np.asarray(measures)
                 i = 0
@@ -272,18 +280,20 @@ class TrackingFrame(Frame):
 
     
     def save_mp4(self,foldername):
-        
-        
+        """Proceeds to export the tracking results to a video.
+        """
+        #------cleaning of the tracking canvas------
         for k in range(len(self.static_halo)):
             self.static_halo[k][0].set_data([],[])
             self.static_soma[k][0].set_data([],[])
         
+        #------saving to MP4------
         writer = anim.writers['ffmpeg']
         writer = writer(fps=5)
         
         with writer.saving(self.f,foldername + '/vid.mp4',200):
             self.reader.rewind()
-            print "Saving video... "
+            print "Saving video..."
             for i in range(self.reader.N()):
                 
                 self.bg=self.reader.getframe()
@@ -295,16 +305,17 @@ class TrackingFrame(Frame):
                 
                 self.plot_halo(i)
                 self.plot_soma(i)
-                self.plot_trajectory(i)
                 
                 self.frame_text.set_text(i)
                 
                 writer.grab_frame()
-            print "Video correctly saved as "#, foldername +'/vid.mp4'
+            print "Video correctly saved at "#, foldername +'/vid.mp4'
 
         self.reset()
 
     def change_bg(self,*args):
+        """adapts the displayed image to the different modes of tracking : Forward and Reverse
+        """
         if self.radValue.get()=='fwd':
             self.bg=self.reader.rewind()
         elif self.radValue.get()=='rev':
@@ -314,7 +325,9 @@ class TrackingFrame(Frame):
         self.canvas.show()
 
     def load_csv(self):
-        #Enlever les marques deja faites
+        """loads marks saved in a CSV file and updates the canvas.
+        """
+        #------delete present marks------
         self.marks=[]
         self.a.cla()
         self.a.set_xlim(0,len(self.bg[0,:]))
@@ -331,6 +344,7 @@ class TrackingFrame(Frame):
         
         self.marks=list(import_marks(tkFileDialog.askopenfilename(**self.file_opt)))
 
+        #------tracking on all cells marked by the CSV file on the displayed frame------
         for i in range(len(self.marks)):
             c=Cell(self.marks[i][0],self.marks[i][1],**self.params)
             c.update(self.bg)
@@ -342,24 +356,24 @@ class TrackingFrame(Frame):
         self.canvas.show()
 
     def browse(self):
+        
         self.file_opt={}
-        #self.file_opt['filetypes'] =  [('HDF5 File','.hdf5')]
-        #self.file_opt['defaultextension'] ='.hdf5'
         self.file_opt['title'] = 'Save as...'
-
         self.hdf5_filename.set(tkFileDialog.asksaveasfilename(**self.file_opt))
 
     def save_param(self,filename):
-        import json
-
+        """Exports the parameters to a JSON file
+        """
+        
         s = json.dumps(self.params)
         fid = open(filename,'w+t')
         fid.write(s)
         del fid
-        print 'parameters saved in ',filename
+        print 'parameters saved at ',filename
 
     def load_param(self):
-        import json
+        """imports the parameters from a JSON file
+        """
         file_opt={}
         file_opt['filetypes'] =  [('JSON files','.json')]
         file_opt['defaultextension'] ='.json'
@@ -378,6 +392,8 @@ class TrackingFrame(Frame):
         self.var_hexp.set(self.params['exp_halo'])
     
     def plot_halo(self,i):
+        """Plots the halo once the tracking is complete to allow the video writer to save the results to a MP4 file.
+        """
         k=0
         for d in self.data:
             t=d['halo']
@@ -387,6 +403,8 @@ class TrackingFrame(Frame):
             k+=1
     
     def plot_soma(self,i):
+        """Plots the soma once the tracking is complete to allow the video writer to save the results to a MP4 file.
+        """
         k=0
         for d in self.data:
             t=d['soma']
@@ -394,20 +412,3 @@ class TrackingFrame(Frame):
             y=t[i,:,1]
             self.soma[k][0].set_data(x,y)
             k+=1
-    
-    def plot_trajectory(self,i):
-        k=0
-        for d in self.data:
-            t=d['center']
-            x=t[0:i,0]
-            y=t[0:i,1]
-            self.trajectory[k][0].set_data(x,y)
-            k+=1
-
-
-if __name__== '__main__':
-    
-    win=Tk()
-    win.wm_title('IVCTrack GUI')
-    c=TrackingFrame(win)
-    c.mainloop()

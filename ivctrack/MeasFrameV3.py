@@ -1,30 +1,29 @@
 # -*- coding: utf-8 -*-
-#Cette version vise à être plus élégante que la précédente
-#A faire : - Pour les plots supp, j'ai compris le problème et il est en partie réglé..
-#Cette version differe de la V1 car elle permet de donner des valeurs quantitatives des features
+'''This file implements the frame displaying various measures related to the movement of the cells.
+'''
+__author__ = ' De Almeida Luis <ldealmei@ulb.ac.be>'
+#------generic imports------
 from Tkinter import *
+
+#------specfic imports------
 import matplotlib
 matplotlib.use('Tkagg')
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 import tkFileDialog
-
-from hdf5_read import get_hdf5_data
-from measurement import speed_feature_extraction
-from measurement import filter
-from measurement import scaling_exponent
-from measurement import relative_direction_distribution
-
-from reader import ZipSource,Reader
 import matplotlib.cm as cm
+
+#------ivctrack toolbox imports------
+from hdf5_read import get_hdf5_data
+from measurement import speed_feature_extraction,filter,scaling_exponent,relative_direction_distribution
+from reader import ZipSource,Reader
 
 
 class MeasFrameV3(Frame):
-    """Frame allowing a deeper trajectory analysis, based on the measurement module """
+    """Frame allowing a deeper trajectory analysis, based on the measurement module of the ivctrack toolbox. """
     
     def __init__(self,win, zip_filename):
         Frame.__init__(self,win,width=700,height=700)
-        #self.pack(fill='both')#A DEGAGER
         
         self.file_opt={}
         self.file_opt['filetypes'] =  [('HDF5 file','.hdf5')]
@@ -36,6 +35,8 @@ class MeasFrameV3(Frame):
         
         self.button_list=[]
 
+        #----------------------------------------------------GUI IMPLEMENTATION-----------------------------------------
+
         self.file_var=StringVar()
         self.file_var.set('HDF5 File: ')
         self.file_lbl=Label(self,textvariable=self.file_var)
@@ -44,11 +45,15 @@ class MeasFrameV3(Frame):
         self.file_browse_button=Button(self,text='Browse',command=self.ask_open_and_load_file)
         self.file_browse_button.grid(row=0,column=1+1)
 
+        #-----Configuration of the tracking canvas------        
         self.f=plt.figure()
         self.a=self.f.add_subplot(111)
         self.canvas = FigureCanvasTkAgg(self.f, master=self)
         self.canvas.get_tk_widget().grid(column=1+0,row=1,columnspan=2)
         
+        #------------------------------------------------------END-------------------------------------------------------------
+
+        #------import of the zip file & update of the canvas------
         self.datazip_filename=zip_filename
         self.reader = Reader(ZipSource(self.datazip_filename))
         self.bg=self.reader.getframe()
@@ -101,6 +106,8 @@ class MeasFrameV3(Frame):
         
         self.button_rel_dir_list=[]
         self.button_lin_fit_list=[]
+        
+        #----------------------------------------------------GUI IMPLEMENTATION-----------------------------------------
     
         self.file_lbl.grid(row=0,column=1+0,columnspan=2*self.nrcells-1)
         self.file_browse_button.grid(row=0,column=1+2*self.nrcells-1)
@@ -132,9 +139,12 @@ class MeasFrameV3(Frame):
         self.cell_list.bind('<Key>',self.show_meas)
 
         self.cell_list.grid(column=0,row=1,rowspan=3)
+        #------------------------------------------------------END-------------------------------------------------------------
+
 
     def show_meas(self,event):
-
+        """Displays general measures of the selected cell.
+        """
         cell_nr=int(self.cell_list.get('active').rsplit(' ')[-1])-1
 
         self.highlight_selected_cell(cell_nr)
@@ -158,6 +168,8 @@ class MeasFrameV3(Frame):
 
 
     def plotRelDir(self):
+        """Executes the 'relative_directio_distribution' function of the measurement module frm the ivctrack toolbox.
+        """
         cell = int(self.cell_list.get('active').rsplit(' ')[-1])-1
         
         self.highlight_selected_cell(cell)
@@ -168,6 +180,8 @@ class MeasFrameV3(Frame):
         R,V,Theta,Rtot,clip_dtheta,rho = relative_direction_distribution(fxy,verbose=True)#2nd figure (polar)
 
     def plotLinFit(self):
+        """Executes the 'scaling_exponent' function of the measurement module frm the ivctrack toolbox.
+        """
         cell = int(self.cell_list.get('active').rsplit(' ')[-1])-1
 
         self.highlight_selected_cell(cell)
@@ -195,6 +209,8 @@ class MeasFrameV3(Frame):
         fig.show()
     
     def highlight_selected_cell(self,cell_nr):
+        """Highlights the cell selected in the listbox to allow a visual localisation of the studied cell.
+        """
         self.a.cla()
         self.a.set_xlim(0,len(self.bg[0,:]))
         self.a.set_ylim(len(self.bg[:,0]),0)
@@ -217,10 +233,3 @@ class MeasFrameV3(Frame):
             i+=1
         
         self.canvas.show()
-
-if __name__== '__main__':
-    
-    win=Tk()
-    win.wm_title('IVCTrack GUI')
-    c=MeasFrame(win)
-    c.mainloop()
