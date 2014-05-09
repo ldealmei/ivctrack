@@ -70,6 +70,7 @@ class MeasFrameV3(Frame):
         self.hdf5_filename=tkFileDialog.askopenfilename(**self.file_opt)
         self.file_var.set('HDF5 File: {}'.format(self.hdf5_filename))
     
+    
         self.c_feat,self.c_data=get_hdf5_data(self.hdf5_filename,fields=['center','halo','soma'])
         feat_name, self.measures=speed_feature_extraction(self.c_data)
 

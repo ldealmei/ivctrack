@@ -50,3 +50,8 @@ Player
 ------
 Gives a preview of the tracking througout the sequence.
 This preview can be exported to an MP4 file 
+
+Warning
+=======
+It is advised to terminate the application after executing a tracking. A bug in the measurements frame may terminate the application unexpectedly and damage the .hdf5 file.
+By terminating and relaunching the program, the integrity of the file will be assured, however the bug may still occur. 

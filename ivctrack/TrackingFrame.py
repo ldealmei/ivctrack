@@ -279,8 +279,9 @@ class TrackingFrame(Frame):
                     i+=1
                 feat_file.close()
         
+        self.reset()
 
-    
+
     def save_mp4(self,foldername):
         """Proceeds to export the tracking results to a video.
         """
@@ -312,7 +313,6 @@ class TrackingFrame(Frame):
                 writer.grab_frame()
             print "Video correctly saved at " + foldername +'/vid.mp4'
 
-        self.reset()
 
     def change_bg(self,*args):
         """adapts the displayed image to the different modes of tracking : Forward and Reverse
